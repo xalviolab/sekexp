@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insight Lab - Sekans Explorer</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link styles.css -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Özel JavaScript modülleri (protein_visualizer.js ve cpg_analyzer.js'ye artık gerek yok, ana script'e entegre edildi) -->
+    <!-- <script src="{{ url_for('static', filename='js/protein_visualizer.js') }}"></script> -->
+    <!-- <script src="{{ url_for('static', filename='js/cpg_analyzer.js') }}"></script> -->
+    <style>
+        /* Tailwind CSS kullanıldığı için buradaki çoğu stil gereksiz olabilir */
+        /* Gerekli özel stiller styles.css içerisine taşındı */
+
+        /* Yumuşak geçişler */
+        #results-container {
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .hidden-initially {
+            opacity: 0;
+            /* Başlangıçta tamamen şeffaf */
+            /* pointer-events: none; /* Tıklamayı engelle */
+            /* max-height: 0; /* Yükseklik animasyonu için */
+            /* overflow: hidden; /* Yükseklik animasyonu için */
+        }
+
+        .visible-now {
+            opacity: 1;
+            /* Görünür yap */
+            /* pointer-events: auto; /* Tıklamayı etkinleştir */
+            /* max-height: 5000px; /* Yeterince büyük bir yükseklik */
+        }
+
+        /* Yüklenme göstergesi için stil */
+        #loading-indicator.hidden {
+            display: none;
+        }
+
+        /* Hata Mesajı */
+        #error-message.hidden {
+            display: none;
+        }
+
+        /* Accordion */
+        details>summary {
+            list-style: none;
+        }
+
+        details>summary::-webkit-details-marker,
+        details>summary::marker {
+            display: none;
+        }
+
+        details>summary {
+            position: relative;
+            padding-left: 1.5rem;
+            /* Ok için yer aç */
+        }
+
+        details>summary::before {
+            content: '\25B6';
+            /* Sağ ok */
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%) rotate(0deg);
+            transition: transform 0.2s ease-in-out;
+            font-size: 0.8em;
+        }
+
+        details[open]>summary::before {
+            transform: translateY(-50%) rotate(90deg);
+            /* Aşağı ok */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 antialiased" id="main-body">
+
+    <div class="container mx-auto px-4 py-8 min-h-screen flex flex-col">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-indigo-700 mb-1">Insight Lab</h1>
+            <p class="text-lg text-gray-600">Eğitim Amaçlı Sekans Analiz Aracı</p>
+        </header>
+
+        <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-6">
+
+            <!-- Sol Panel: Giriş ve Ayarlar -->
+            <aside
+                class="md:col-span-4 lg:col-span-3 bg-white p-6 rounded-xl shadow-md border border-gray-200 h-fit  top-6 apple-card">
+                <form id="analysis-form">
+                    <div class="mb-5">
+                        <label for="sequence-input" class="block text-sm font-medium text-gray-700 mb-1">Sekans
+                            (FASTA/Düz Metin)</label>
+                        <textarea id="sequence-input" name="sequence" rows="8"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-mono"></textarea>
+                    </div>
+                    <div class="mb-5 space-y-3">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <label for="file-input"
+                                class="cursor-pointer inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 apple-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Dosya Yükle
+                            </label>
+                            <input type="file" id="file-input" class="hidden" accept=".fasta,.fa,.fna,.txt">
+                            <span id="file-name" class="text-xs text-gray-500 flex-shrink truncate"
+                                title="Yüklenen dosya adı"></span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 items-center">
+                            <span class="text-xs text-gray-500 mr-1">Örnekler:</span>
+                            <button type="button"
+                                class="sample-btn px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded hover:bg-indigo-100 apple-btn"
+                                data-seq-id="dna_example">DNA</button>
+                            <button type="button"
+                                class="sample-btn px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded hover:bg-indigo-100 apple-btn"
+                                data-seq-id="rna_example">RNA</button>
+                            <button type="button"
+                                class="sample-btn px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded hover:bg-indigo-100 apple-btn"
+                                data-seq-id="protein_example">Protein</button>
+                        </div>
+
+                        <!-- Analiz Ayarları -->
+                        <div class="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                            <h4 class="text-sm font-medium text-gray-800">Analiz Ayarları</h4>
+                            <!-- ORF Filtre Uzunluğu Ayarı -->
+                            <div>
+                                <label for="orf-length-slider"
+                                    class="block text-xs font-medium text-gray-700 mb-1 flex justify-between">
+                                    <span>ORF Minimum Uzunluğu:</span>
+                                    <span id="orf-length-value" class="font-mono text-indigo-600">50 aa</span>
+                                </label>
+                                <input type="range" id="orf-length-slider" class="range-slider w-full h-1.5" min="10"
+                                    max="200" value="50" step="5">
+                                <div class="flex justify-between text-[10px] text-gray-500 mt-1 px-1">
+                                    <span>10</span>
+                                    <span>100</span>
+                                    <span>200</span>
+                                </div>
+                            </div>
+
+                            <!-- CpG Adası Algoritma Seçimi -->
+                            <div>
+                                <label for="cpg-algorithm-select" class="block text-xs font-medium text-gray-700 mb-1">
+                                    CpG Adası Algoritması:
+                                </label>
+                                <select id="cpg-algorithm-select" name="cpg_algorithm"
+                                    class="mt-1 block w-full pl-3 pr-8 py-1.5 text-xs border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+                                    <option value="gardiner" selected>Gardiner (1987)</option>
+                                    <option value="takai">Takai (2002)</option>
+                                    <option value="irizarry">Irizarry/UCSC (2009)</option>
+                                    <!-- UCSC için ayrı bir seçenek yerine Irizarry veya Gardiner kullanılıyor -->
+                                    <!-- <option value="ucsc">UCSC (Approx)</option> -->
+                                </select>
+                            </div>
+                            <!-- CpG Adası Ayarları (Gelişmiş/Gizli) -->
+                            <!-- Kullanıcının pencere boyutu, GC, O/E eşiklerini override etmesine olanak tanıyacak alanlar buraya eklenebilir. -->
+                            <!-- Şu an için sadece algoritma seçimi var. -->
+
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <button type="submit" id="analyze-button"
+                            class="w-full inline-flex justify-center items-center py-2.5 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 apple-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93V15a1 1 0 001 1h.01a1 1 0 00.99-1.067l-.01-.011V14.93a7.002 7.002 0 01-3.99 0z"
+                                    clip-rule="evenodd" />
+                                <path
+                                    d="M10.75 17.14V18a1 1 0 01-1.5 0v-.86a8.963 8.963 0 01-4.03-3.08 1 1 0 01.67-1.61l.008.002.01.003a7.02 7.02 0 007.1-.005l.009-.003.007-.002a1 1 0 01.67 1.61 8.963 8.963 0 01-4.03 3.08z" />
+                            </svg>
+                            Analiz Et
+                        </button>
+                        <div id="loading-indicator" class="mt-2 text-center text-sm text-indigo-600 hidden">
+                            <svg class="animate-spin h-4 w-4 text-indigo-600 inline mr-1"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            Analiz ediliyor... Lütfen bekleyin.
+                        </div>
+                    </div>
+
+                    <!-- Yardım Bölümü -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <details class="guide-section">
+                            <summary
+                                class="text-sm font-medium text-gray-700 cursor-pointer hover:text-indigo-600 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Nasıl Kullanılır?
+                            </summary>
+                            <div class="guide-container open mt-2 text-xs text-gray-600 space-y-1.5 pl-5">
+                                <p>1. Sekansınızı metin kutusuna yapıştırın veya FASTA/TXT dosyası yükleyin.</p>
+                                <p>2. İsteğe bağlı olarak ORF minimum uzunluğunu ve CpG algoritmasını ayarlayın.</p>
+                                <p>3. "Analiz Et" düğmesine tıklayın.</p>
+                                <p>4. Sonuçlar sağ panelde görüntülenecektir.</p>
+                                <p>5. Sekans görselleştirmesinde renkli bölgelerin üzerine gelerek detayları görün.</p>
+                            </div>
+                        </details>
+                    </div>
+                </form>
+            </aside>
+
+            <!-- Sağ Panel: Sonuçlar -->
+            <section class="md:col-span-8 lg:col-span-9 space-y-6">
+                <!-- Hata Mesajı Alanı -->
+                <div id="error-message"
+                    class="hidden p-4 text-sm text-red-800 bg-red-100 rounded-lg shadow-sm border border-red-200 apple-card"
+                    role="alert">
+                    <strong class="font-medium">Hata!</strong> <span id="error-text"></span>
+                </div>
+
+                <!-- Başlangıç Bilgi Mesajı -->
+                <div id="initial-info"
+                    class="text-center text-gray-500 mt-10 p-6 bg-white rounded-xl shadow-md border border-gray-200 apple-card">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-indigo-300 mx-auto mb-3" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.28a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                    <p>Analiz sonuçları burada görüntülenecektir.</p>
+                    <p class="text-xs mt-1">Lütfen bir sekans girin veya yükleyin ve "Analiz Et"e tıklayın.</p>
+                </div>
+
+                <!-- Sonuç Container -->
+                <div id="results-container"
+                    class="bg-white p-6 rounded-xl shadow-md border border-gray-200 space-y-8 hidden-initially apple-card">
+
+                    <!-- Analiz Özeti Bölümü -->
+                    <div id="summary-results" class="results-section hidden">
+                        <h3 class="text-xl font-semibold mb-4 border-b border-gray-200 pb-2 text-gray-800">Analiz Özeti
+                        </h3>
+                        <div id="summary-content"
+                            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm text-gray-700">
+                            <!-- İçerik JS ile doldurulacak -->
+                        </div>
+                        <!-- Dağılım Grafiği -->
+                        <div class="mt-6">
+                            <h4 class="text-md font-medium mb-2 text-gray-800">Baz/Amino Asit Dağılımı (%)</h4>
+                            <div class="chart-container relative h-64 md:h-72">
+                                <canvas id="distribution-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sekans Görüntüleyici Bölümü (Artık interaktif görselleştirme daha çok kullanılıyor) -->
+                    <!-- <div id="sequence-viewer-section" class="results-section hidden">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-gray-200 pb-2 text-gray-800">Sekans Görüntüleyici</h3>
+                        <div id="sequence-viewer"
+                            class="sequence-container bg-gray-50 border border-gray-200 rounded-md p-3 max-h-60 overflow-y-auto text-xs md:text-sm">
+                            Sekans JS ile renklendirilip buraya eklenecek
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Sekansın renk kodlu gösterimi.</p>
+                    </div> -->
+
+                    <!-- İnteraktif Görselleştirme Bölümü -->
+                    <div id="visualization-section" class="results-section hidden">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-gray-200 pb-2 text-gray-800">İnteraktif
+                            Sekans Görselleştirmesi</h3>
+                        <div id="visualization"
+                            class="w-full whitespace-pre wrap overflow-x-auto border border-gray-200 bg-gray-50 p-4 rounded-md font-mono text-sm md:text-base leading-relaxed shadow-inner min-h-[60px] sequence-container">
+                            <span class="text-gray-400 text-sm italic">Analiz bekleniyor...</span>
+                        </div>
+                        <div id="annotation-details-container" class="mt-3 hidden">
+                            <p class="text-xs text-gray-500 mb-1">Seçilen Özellik Detayları:</p>
+                            <div id="annotation-details"
+                                class="p-3 border border-indigo-200 rounded bg-indigo-50 text-sm text-indigo-900 shadow-sm">
+                                <!-- Detaylar JS ile doldurulacak -->
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Özelliklerin üzerine gelerek detayları ve eğitimsel
+                            açıklamaları görebilirsiniz.</p>
+                    </div>
+
+                    <!-- ORF Sonuçları Bölümü -->
+                    <div id="orf-results" class="results-section hidden">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-gray-200 pb-2 text-gray-800">Açık Okuma
+                            Çerçeveleri (ORF) <span class="text-xs font-normal text-gray-500">(Min. Uzunluk: <span
+                                    id="min-orf-length" class="font-semibold">?</span> aa)</span></h3>
+                        <div id="orf-table-container" class="overflow-x-auto max-h-96">
+                            <table class="min-w-full divide-y divide-gray-200 text-xs">
+                                <thead class="bg-gray-100 sticky top-0">
+                                    <tr>
+                                        <th scope="col"
+                                            class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">
+                                            Çerçeve</th>
+                                        <th scope="col"
+                                            class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">
+                                            Strand</th>
+                                        <th scope="col"
+                                            class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">
+                                            Başl. (nt)</th>
+                                        <th scope="col"
+                                            class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">
+                                            Bitiş (nt)</th>
+                                        <th scope="col"
+                                            class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">
+                                            Uzunluk (aa)</th>
+                                        <th scope="col"
+                                            class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">
+                                            Protein Dizisi (Kısmi)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orf-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- ORF satırları JS ile eklenecek -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <p id="no-orf-found" class="text-sm text-gray-500 mt-3 hidden italic">Belirtilen minimum
+                            uzunlukta ORF bulunamadı.</p>
+                    </div>
+
+                    <!-- Protein İstatistikleri Bölümü (Sadece Protein veya ORF varsa) -->
+                    <div id="protein-stats-results" class="results-section hidden">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-gray-200 pb-2 text-gray-800">Protein
+                            İstatistikleri</h3>
+                        <div id="protein-stats-content" class="text-sm space-y-3">
+                            <!-- Protein İstatistikleri JS ile doldurulacak -->
+                        </div>
+                        <div id="protein-hints-section" class="mt-4 pt-3 border-t border-gray-200 hidden">
+                            <h4 class="text-md font-medium text-gray-800 mb-2">(Eğitimsel) Potansiyel Fonksiyon İpuçları
+                            </h4>
+                            <ul id="protein-hints-list"
+                                class="list-disc list-inside text-xs text-gray-600 space-y-1 pl-5">
+                                <!-- İpuçları JS ile eklenecek -->
+                            </ul>
+                            <p class="text-[10px] text-red-600 mt-2 italic">**Unutmayın:** Bu ipuçları sadece basit
+                                motiflere ve genel özelliklere dayanır, gerçek fonksiyonel analiz için yetersizdir!</p>
+                        </div>
+                    </div>
+
+
+                    <!-- Detaylı Analizler Bölümü (Accordion) -->
+                    <div id="other-results" class="results-section hidden">
+                        <details class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden" open>
+                            <summary
+                                class="text-lg font-semibold cursor-pointer hover:bg-gray-100 p-3 border-b border-gray-200 text-gray-800">
+                                Diğer Detaylı Analizler
+                            </summary>
+                            <div class="p-4 space-y-5 text-sm">
+                                <!-- Motif Sonuçları -->
+                                <div id="motif-results" class="hidden">
+                                    <h4 class="font-semibold text-md mb-2 text-gray-700">Bulunan Motifler</h4>
+                                    <ul id="motif-list"
+                                        class="list-disc list-inside space-y-1 text-xs max-h-60 overflow-y-auto pl-5">
+                                    </ul>
+                                    <p id="no-motif-found" class="text-xs text-gray-500 mt-2 hidden italic">Tanımlı
+                                        motif bulunamadı.</p>
+                                </div>
+                                <!-- Restriksiyon Alanları -->
+                                <div id="restriction-results" class="hidden">
+                                    <h4 class="font-semibold text-md mb-2 text-gray-700">Restriksiyon Enzim Kesim
+                                        Alanları</h4>
+                                    <div id="restriction-table-container" class="overflow-x-auto text-xs max-h-60">
+                                        <!-- Tablo JS ile eklenecek -->
+                                    </div>
+                                    <p id="no-restriction-found" class="text-xs text-gray-500 mt-2 hidden italic">
+                                        Tanımlı enzimler için kesim alanı bulunamadı veya hesaplanamadı.</p>
+                                </div>
+                                <!-- CpG Adaları -->
+                                <div id="cpg-results" class="hidden">
+                                    <h4 class="font-semibold text-md mb-2 text-gray-700">CpG Adaları (<span
+                                            id="cpg-algorithm-used" class="font-normal"></span> algoritması)</h4>
+                                    <ul id="cpg-list"
+                                        class="list-disc list-inside space-y-1 text-xs max-h-60 overflow-y-auto pl-5">
+                                    </ul>
+                                    <p id="no-cpg-found" class="text-xs text-gray-500 mt-2 hidden italic">CpG adası
+                                        bulunamadı.</p>
+                                </div>
+                                <!-- Okuma Çerçeveleri -->
+                                <div id="frames-results" class="hidden">
+                                    <h4 class="font-semibold text-md mb-2 text-gray-700">6 Okuma Çerçevesi (Tam Protein
+                                        Çevirisi)</h4>
+                                    <div id="frames-content"
+                                        class="font-mono text-[10px] md:text-xs space-y-2 overflow-x-auto border bg-white p-3 rounded max-h-72 shadow-inner">
+                                        <!-- Çerçeve dizileri JS ile eklenecek -->
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">Protein dizileri başlangıç ('M') ve bitiş
+                                        ('*') kodonlarını içerir.</p>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                </div> <!-- results-container sonu -->
+
+                <!-- Kılavuz ve Açıklamalar -->
+                <div class="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-100 apple-card">
+                    <h3 class="text-lg font-semibold text-indigo-700 mb-3">Sekans Explorer Kılavuzu ve Terimler</h3>
+                    <div class="space-y-4 text-sm">
+                        <div>
+                            <h4 class="font-medium text-indigo-600">Sekans Görselleştirmesi</h4>
+                            <p class="text-gray-600">Yukarıdaki interaktif görselleştirmede farklı biyolojik özellikler
+                                renklerle ve alt çizgilerle belirtilmiştir. Üzerlerine gelerek daha fazla bilgi
+                                alabilirsiniz.</p>
+                            <ul class="mt-1 ml-4 list-disc text-gray-600 text-xs grid grid-cols-2 gap-x-4">
+                                <li><span class="inline-block px-1 rounded"
+                                        style="background-color: var(--start-codon-bg); border-bottom: 2px solid var(--start-codon-border);">Başlangıç
+                                        Kodonu</span></li>
+                                <li><span class="inline-block px-1 rounded"
+                                        style="background-color: var(--stop-codon-bg); border-bottom: 2px solid var(--stop-codon-border);">Bitiş
+                                        Kodonu</span></li>
+                                <li><span class="inline-block px-1 rounded"
+                                        style="background-color: var(--motif-bg); border-bottom: 2px solid var(--motif-border);">Motif/Kutu</span>
+                                </li>
+                                <li><span class="inline-block px-1 rounded"
+                                        style="background-color: var(--orf-bg); border: 1px dashed var(--orf-border);">ORF
+                                        Bölgesi</span></li>
+                                <li><span class="inline-block px-1 rounded"
+                                        style="border-bottom: 2px dotted var(--restriction-site-border);">Restriksiyon
+                                        Alanı</span></li>
+                                <li><span class="inline-block px-1 rounded"
+                                        style="background-color: var(--cpg-island-bg);">CpG Adası</span></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-indigo-600">Temel Kavramlar</h4>
+                            <ul class="mt-1 ml-4 list-disc text-gray-600 text-xs space-y-1">
+                                <li><strong>ORF (Açık Okuma Çerçevesi):</strong> Potansiyel olarak bir protein kodlayan,
+                                    başlangıç kodonu ile başlayıp bitiş kodonu ile biten DNA/RNA bölgesi.</li>
+                                <li><strong>Motif:</strong> Genellikle düzenleyici işlevi olan, korunmuş kısa DNA/RNA
+                                    dizisi (örn: TATA kutusu).</li>
+                                <li><strong>Restriksiyon Alanı:</strong> Belirli restriksiyon enzimlerinin DNA'yı
+                                    kestiği tanıma dizisi.</li>
+                                <li><strong>CpG Adası:</strong> Genellikle genlerin başlangıç bölgelerinde bulunan, GC
+                                    oranı yüksek ve CpG dinükleotidi sık olan bölge. Metilasyon ve gen ifadesiyle
+                                    ilişkilidir.</li>
+                                <li><strong>GC İçeriği (%):</strong> Dizideki Guanin (G) ve Sitozin (C) bazlarının
+                                    toplam yüzdesi.</li>
+                                <li><strong>CpG O/E Oranı:</strong> Gözlenen CpG sayısı / Beklenen CpG sayısı. CpG
+                                    adalarını bulmada kullanılır (>0.6 tipik bir eşiktir).</li>
+                                <li><strong>Protein İstatistikleri:</strong> Molekül ağırlığı, pI (izoelektrik nokta),
+                                    amino asit kompozisyonu gibi proteinin fizikokimyasal özellikleridir.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </section> <!-- Sağ panel sonu -->
+
+        </div> <!-- Ana grid sonu -->
+
+        <footer class="mt-12 pt-6 border-t border-gray-200 text-center">
+            <div class="max-w-3xl mx-auto mb-6">
+                <p class="text-sm text-red-700 font-semibold bg-red-100 p-4 rounded-lg border border-red-200 shadow-sm">
+                    <strong class="text-red-800">**UYARI: EĞİTİM AMAÇLI ARAÇ**</strong><br>
+                    Bu uygulama yalnızca biyoinformatik kavramlarını öğrenme ve keşfetme amacıyla tasarlanmıştır.
+                    Üretilen sonuçlar ve açıklamalar, gerçek biyolojik sistemlerin karmaşıklığını tam olarak
+                    yansıtmayabilir ve <strong class="underline">ASLA tıbbi teşhis, tedavi önerisi veya herhangi bir
+                        klinik/bilimsel karar verme amacıyla kullanılmamalıdır.</strong> Gerçek uygulamalar için
+                    doğrulanmış, hakemli araçlar ve uzman görüşü gereklidir.
+                </p>
+            </div>
+            <p class="text-xs text-gray-500 mt-4">
+                Insight Lab © 2024 | Bir Yapay Zeka Eğitim Projesi (Claude 3.5 Sonnet tarafından desteklenmektedir)
+            </p>
+        </footer>
+    </div> <!-- Container sonu -->
+
+    <!-- Tema Değiştirme Butonu -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="Temayı değiştir">
+        <!-- İkon JS ile değiştirilecek -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+    </button>
+
+    <!-- Ana JavaScript Dosyası -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script>
+        // Bu script bloğu, script.js dosyasına taşındı.
+        // index.html içinde tekrar tanımlanması "Redeclared" hatalarına yol açar.
+        // script.js dosyasının içeriği zaten bu DOMContentLoaded bloğunu içeriyor olmalı.
+        // Bu blok, script.js'nin sonunda veya içinde bir DOMContentLoaded listener'ı olarak çalışacaktır.
+        // Bu HTML dosyasındaki bu script bloğunu kaldırın.
+
+        /*
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elementleri ve diğer tanımlamalar script.js içinde yapılmalı
+
+            // Global Chart objesini tutmak için değişken
+            // window.distributionChart = null; // script.js içinde tanımlanacak
+
+            // Dağılım grafiği oluşturma fonksiyonu (script.js içinde tanımlanmalı)
+            // window.createDistributionChart = function (distribution, seqType) { ... }; // script.js içinde tanımlanacak
+
+            // Tema Değiştirme ve Slider mantığı da script.js içinde DOMContentLoaded içinde olmalı
+            // const themeToggle = document.getElementById('theme-toggle');
+            // const body = document.getElementById('main-body');
+            // ... tema mantığı ...
+
+            // const orfLengthSlider = document.getElementById('orf-length-slider');
+            // const orfLengthValue = document.getElementById('orf-length-value');
+            // ... slider mantığı ...
+
+
+        }); // DOMContentLoaded sonu
+        */
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,477 @@
+/* Insight Lab - Sekans Explorer Styles */
+
+:root {
+    /* Light Theme Variables */
+    --bg-primary-light: #ffffff;
+    --bg-secondary-light: #f9fafb;
+    --text-primary-light: #1f2937;
+    --text-secondary-light: #4b5563;
+    --accent-light: #4f46e5;
+    --accent-hover-light: #4338ca;
+    --border-light: #e5e7eb;
+    --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    /* Dark Theme Variables */
+    --bg-primary-dark: #111827;
+    --bg-secondary-dark: #1f2937;
+    --text-primary-dark: #f9fafb;
+    --text-secondary-dark: #d1d5db;
+    --accent-dark: #6366f1;
+    --accent-hover-dark: #818cf8;
+    --border-dark: #374151;
+    --shadow-dark: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    /* Feature Colors */
+    --color-a: #34D399;
+    --color-t: #F87171;
+    --color-g: #FBBF24;
+    --color-c: #60A5FA;
+    --color-u: #F87171;
+    --color-protein: #9CA3AF;
+    --color-unknown: #D1D5DB;
+
+    /* Feature Highlights */
+    --start-codon-bg: rgba(16, 185, 129, 0.15);
+    --start-codon-border: #10B981;
+    --stop-codon-bg: rgba(239, 68, 68, 0.15);
+    --stop-codon-border: #EF4444;
+    --motif-bg: rgba(245, 158, 11, 0.15);
+    --motif-border: #F59E0B;
+    --orf-bg: rgba(99, 102, 241, 0.1);
+    --orf-border: #6366F1;
+    --restriction-site-border: #8B5CF6;
+    --cpg-island-bg: rgba(59, 130, 246, 0.15);
+}
+
+/* Base Styles */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 0;
+    padding: 0;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background-color: var(--bg-primary-dark);
+    color: var(--text-primary-dark);
+}
+
+.dark-mode .card {
+    background-color: var(--bg-secondary-dark);
+    border-color: var(--border-dark);
+    box-shadow: var(--shadow-dark);
+}
+
+.dark-mode .btn-primary {
+    background-color: var(--accent-dark);
+}
+
+.dark-mode .btn-primary:hover {
+    background-color: var(--accent-hover-dark);
+}
+
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+    background-color: var(--bg-primary-dark);
+    border-color: var(--border-dark);
+    color: var(--text-primary-dark);
+}
+
+.dark-mode .border {
+    border-color: var(--border-dark);
+}
+
+/* Apple-inspired UI Elements */
+.apple-btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.apple-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apple-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Sequence Visualization Styles */
+.sequence-container {
+    overflow-x: auto;
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    line-height: 1.5;
+}
+
+.dark-mode .sequence-container {
+    background-color: var(--bg-secondary-dark);
+    border-color: var(--border-dark);
+}
+
+/* Base Styles */
+.base {
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    transition: background-color 0.2s ease;
+}
+
+.base-A {
+    color: var(--color-a);
+}
+
+.base-T,
+.base-U {
+    color: var(--color-t);
+}
+
+.base-G {
+    color: var(--color-g);
+}
+
+.base-C {
+    color: var(--color-c);
+}
+
+.base-Protein {
+    color: var(--color-protein);
+}
+
+.base-Unknown {
+    color: var(--color-unknown);
+}
+
+/* Feature Styles */
+.feature {
+    position: relative;
+    cursor: help;
+    border-radius: 2px;
+    padding: 0 1px;
+    margin: 0 -1px;
+}
+
+.start-codon {
+    background-color: var(--start-codon-bg);
+    border-bottom: 2px solid var(--start-codon-border);
+}
+
+.stop-codon {
+    background-color: var(--stop-codon-bg);
+    border-bottom: 2px solid var(--stop-codon-border);
+}
+
+.motif {
+    background-color: var(--motif-bg);
+    border-bottom: 2px solid var(--motif-border);
+}
+
+.orf {
+    background-color: var(--orf-bg);
+    border: 1px dashed var(--orf-border);
+    margin: -1px;
+}
+
+.restriction-site {
+    border-bottom: 2px dotted var(--restriction-site-border);
+}
+
+.cpg-island {
+    background-color: var(--cpg-island-bg);
+    border-radius: 3px;
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: normal;
+    z-index: 10;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    min-width: 200px;
+    max-width: 300px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+
+.feature:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Visualization Charts */
+.chart-container {
+    width: 100%;
+    height: 300px;
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+    }
+
+    .tooltip {
+        min-width: 150px;
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 640px) {
+    .chart-container {
+        height: 200px;
+    }
+
+    .sequence-container {
+        font-size: 0.8rem;
+    }
+}
+
+/* Theme Toggle */
+.theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    background-color: var(--accent-light);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.dark-mode .theme-toggle {
+    background-color: var(--accent-dark);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* Protein dizisi gösterimi için ek stiller */
+.protein-sequence-container {
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    line-height: 1.8;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: var(--bg-secondary-light);
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.dark-mode .protein-sequence-container {
+    background-color: var(--bg-secondary-dark);
+}
+
+.protein-residue {
+    display: inline-block;
+    padding: 0.1rem 0.3rem;
+    margin: 0.1rem;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.protein-residue:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    position: relative;
+}
+
+/* Amino asit gruplarına göre renkler */
+.residue-hydrophobic {
+    background-color: rgba(255, 159, 64, 0.2);
+    border: 1px solid rgba(255, 159, 64, 0.5);
+}
+
+.residue-polar {
+    background-color: rgba(54, 162, 235, 0.2);
+    border: 1px solid rgba(54, 162, 235, 0.5);
+}
+
+.residue-positive {
+    background-color: rgba(255, 99, 132, 0.2);
+    border: 1px solid rgba(255, 99, 132, 0.5);
+}
+
+.residue-negative {
+    background-color: rgba(75, 192, 192, 0.2);
+    border: 1px solid rgba(75, 192, 192, 0.5);
+}
+
+.residue-special {
+    background-color: rgba(153, 102, 255, 0.2);
+    border: 1px solid rgba(153, 102, 255, 0.5);
+}
+
+/* Protein özellikleri kartları */
+.protein-property-card {
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.protein-property-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.protein-hint-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.protein-hint-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.dark-mode .protein-hint-list li {
+    border-bottom-color: var(--border-dark);
+}
+
+.protein-hint-list li:last-child {
+    border-bottom: none;
+}
+
+/* Protein fonksiyon ipuçları için ikon */
+.hint-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    background-color: var(--accent-light);
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.dark-mode .hint-icon {
+    background-color: var(--accent-dark);
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+/* Help Guide Styles */
+.guide-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+}
+
+.guide-container.open {
+    max-height: 1000px;
+}
+
+.guide-section {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: var(--bg-secondary-light);
+}
+
+.dark-mode .guide-section {
+    background-color: var(--bg-secondary-dark);
+}
+
+/* Range Slider Styles */
+.range-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    transition: background 0.2s;
+}
+
+.dark-mode .range-slider {
+    background: #4b5563;
+}
+
+.range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.dark-mode .range-slider::-webkit-slider-thumb {
+    background: var(--accent-dark);
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.range-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    border: none;
+}
+
+.dark-mode .range-slider::-moz-range-thumb {
+    background: var(--accent-dark);
+}
+
+.range-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+}

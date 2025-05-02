@@ -1,0 +1,6 @@
+Flask
+Flask-Cors
+Biopython
+numpy
+pandas
+# regex (Python'ın standart kütüphanesinin bir parçasıdır, genellikle buraya eklenmez)
