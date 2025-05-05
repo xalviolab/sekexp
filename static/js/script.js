@@ -1026,11 +1026,11 @@ IFKFGSVSKLLIFPNAIPSLECVYIDGEDTAYDGRKGYIDDGEMSDWMPEKGWYQYAEKEFAHIVKPRT`,
 
     // Kaydedilmiş tema tercihini kontrol et ve uygula
     const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const prefersDark = window.matchMedia('(prefers-color-scheme: light)').matches;
     let isDarkMode;
 
     if (savedTheme) {
-        isDarkMode = savedTheme === 'dark';
+        isDarkMode = savedTheme === 'light';
     } else {
         isDarkMode = prefersDark; // Sistem tercihini kullan
         //localStorage.setItem('theme', isDarkMode ? 'dark' : 'light'); // İlk yüklemede kaydetmeyelim, kullanıcı seçerse kaydederiz
